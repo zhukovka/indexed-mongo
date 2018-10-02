@@ -40,7 +40,6 @@ export class Db {
      * Unknown parameters are ignored.
      */
     createCollection (name: string, options: IDBObjectStoreParameters = {autoIncrement : true}): Promise<Collection> {
-        console.log(`create collection ${name}`);
         if (!this.collectionQueue.size && !this.DBOpenRequest) {
             this.DBOpenRequest = self.indexedDB.open(name, this.idb.version + 1);
         }
@@ -53,7 +52,6 @@ export class Db {
             this.DBOpenRequest.addEventListener('upgradeneeded', e => {
                 let db: IDBDatabase = this.DBOpenRequest.result;
                 this.idb = db;
-                console.log(`upgradeneeded ${name}, collectionQueue ${this.collectionQueue.size}`);
                 const store = db.createObjectStore(name, options);
 
                 // Use transaction oncomplete to make sure the objectStore creation is
@@ -61,7 +59,6 @@ export class Db {
                 let transaction = store.transaction;
                 transaction.addEventListener('complete', (event) => {
                     let collection = new Collection(store, this.idb);
-                    console.log("store.transaction.oncomplete", db.version);
                     this.collectionQueue.delete(name);
                     resolve(collection);
                 });
@@ -75,5 +72,13 @@ export class Db {
                 }
             }
         });
+    }
+
+    collection (name: string): Promise<Collection> {
+        if (this.idb.objectStoreNames.contains(name)) {
+            const store = this.idb.transaction(name).objectStore(name);
+            return Promise.resolve(new Collection(store, this.idb));
+        }
+        return Promise.reject("No such collection");
     }
 }
