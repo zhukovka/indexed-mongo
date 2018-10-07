@@ -21,6 +21,9 @@ class Db {
             };
         });
     }
+    get version() {
+        return this.idb.version;
+    }
     /**
      *
      * @param name
@@ -33,8 +36,11 @@ class Db {
      * Unknown parameters are ignored.
      */
     createCollection(name, options = { autoIncrement: true }) {
+        if (this.idb.objectStoreNames.contains(name)) {
+            throw new Error("Collection already exists");
+        }
         if (!this.collectionQueue.size && !this.DBOpenRequest) {
-            this.DBOpenRequest = self.indexedDB.open(name, this.idb.version + 1);
+            this.DBOpenRequest = self.indexedDB.open(this.idb.name, this.idb.version + 1);
         }
         this.collectionQueue.add(name);
         return new Promise((resolve, reject) => {
