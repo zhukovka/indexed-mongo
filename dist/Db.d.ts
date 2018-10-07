@@ -5,6 +5,7 @@ export declare class Db {
     private DBOpenRequest;
     static open(name: string): Promise<Db>;
     constructor(idb: IDBDatabase);
+    readonly version: number;
     /**
      *
      * @param name
