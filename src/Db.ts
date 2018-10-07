@@ -1,10 +1,10 @@
-import {Collection, CollectionCreateOptions} from "./Collection";
+import {Collection} from "./Collection";
 
 export class Db {
     private collectionQueue: Set<string> = new Set<string>();
     private DBOpenRequest: IDBOpenDBRequest;
 
-    static open (name: string): Promise<Db> {
+    static open (name: string, collections?: string[]): Promise<Db> {
 
         const DBOpenRequest = self.indexedDB.open(name);
 
@@ -12,24 +12,26 @@ export class Db {
 
             // these two event handlers act on the database being opened
             // successfully, or not
-            DBOpenRequest.onerror = reject;
-
-            DBOpenRequest.onsuccess = function (event) {
+            DBOpenRequest.addEventListener('error', reject);
+            DBOpenRequest.addEventListener('success', function (event) {
                 // store the result of opening the database in the db
                 // variable. This is used a lot later on, for opening
                 // transactions and suchlike.
-                let db: IDBDatabase = DBOpenRequest.result;
-                resolve(new Db(db));
+                let db = new Db(DBOpenRequest.result);
+                resolve(db);
+            });
+            DBOpenRequest.onblocked = (e) => {
+                console.log('blocked')
             };
+            //
         });
     }
 
     constructor (private idb: IDBDatabase) {
-
     }
 
     get version () {
-        return this.idb.version;
+        return this.idb ? this.idb.version : 0;
     }
 
     /**
@@ -48,7 +50,9 @@ export class Db {
             throw new Error("Collection already exists");
         }
         if (!this.collectionQueue.size && !this.DBOpenRequest) {
-            this.DBOpenRequest = self.indexedDB.open(this.idb.name, this.idb.version + 1);
+            let v = this.version + 1;
+            this.idb.close();
+            this.DBOpenRequest = self.indexedDB.open(this.idb.name, v);
         }
         this.collectionQueue.add(name);
         return new Promise<Collection>((resolve, reject) => {
@@ -59,6 +63,7 @@ export class Db {
             this.DBOpenRequest.addEventListener('upgradeneeded', e => {
                 let db: IDBDatabase = this.DBOpenRequest.result;
                 this.idb = db;
+                //This method can be called only within a versionchange transaction.
                 const store = db.createObjectStore(name, options);
 
                 // Use transaction oncomplete to make sure the objectStore creation is
@@ -77,7 +82,7 @@ export class Db {
                 } else {
                     throw new Error("Not all collections were created");
                 }
-            }
+            };
         });
     }
 

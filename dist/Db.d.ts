@@ -3,7 +3,7 @@ export declare class Db {
     private idb;
     private collectionQueue;
     private DBOpenRequest;
-    static open(name: string): Promise<Db>;
+    static open(name: string, collections?: string[]): Promise<Db>;
     constructor(idb: IDBDatabase);
     readonly version: number;
     /**

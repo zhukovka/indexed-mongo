@@ -1,6 +1,7 @@
 import {Db} from "./Db";
 
 export interface IndexedClientOptions {
+    collections?: string[]
 }
 
 export class IndexedClient {

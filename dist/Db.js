@@ -6,23 +6,27 @@ class Db {
         this.idb = idb;
         this.collectionQueue = new Set();
     }
-    static open(name) {
+    static open(name, collections) {
         const DBOpenRequest = self.indexedDB.open(name);
         return new Promise((resolve, reject) => {
             // these two event handlers act on the database being opened
             // successfully, or not
-            DBOpenRequest.onerror = reject;
-            DBOpenRequest.onsuccess = function (event) {
+            DBOpenRequest.addEventListener('error', reject);
+            DBOpenRequest.addEventListener('success', function (event) {
                 // store the result of opening the database in the db
                 // variable. This is used a lot later on, for opening
                 // transactions and suchlike.
-                let db = DBOpenRequest.result;
-                resolve(new Db(db));
+                let db = new Db(DBOpenRequest.result);
+                resolve(db);
+            });
+            DBOpenRequest.onblocked = (e) => {
+                console.log('blocked');
             };
+            //
         });
     }
     get version() {
-        return this.idb.version;
+        return this.idb ? this.idb.version : 0;
     }
     /**
      *
@@ -40,7 +44,9 @@ class Db {
             throw new Error("Collection already exists");
         }
         if (!this.collectionQueue.size && !this.DBOpenRequest) {
-            this.DBOpenRequest = self.indexedDB.open(this.idb.name, this.idb.version + 1);
+            let v = this.version + 1;
+            this.idb.close();
+            this.DBOpenRequest = self.indexedDB.open(this.idb.name, v);
         }
         this.collectionQueue.add(name);
         return new Promise((resolve, reject) => {
@@ -50,6 +56,7 @@ class Db {
             this.DBOpenRequest.addEventListener('upgradeneeded', e => {
                 let db = this.DBOpenRequest.result;
                 this.idb = db;
+                //This method can be called only within a versionchange transaction.
                 const store = db.createObjectStore(name, options);
                 // Use transaction oncomplete to make sure the objectStore creation is
                 // finished before adding data into it.
