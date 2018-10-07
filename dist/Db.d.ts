@@ -19,4 +19,5 @@ export declare class Db {
      */
     createCollection(name: string, options?: IDBObjectStoreParameters): Promise<Collection>;
     collection(name: string): Promise<Collection>;
+    close(): void;
 }
