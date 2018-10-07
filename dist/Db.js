@@ -84,6 +84,9 @@ class Db {
         }
         return Promise.reject("No such collection");
     }
+    close() {
+        this.idb.close();
+    }
 }
 exports.Db = Db;
 //# sourceMappingURL=Db.js.map

@@ -53,7 +53,7 @@ class Collection {
         const transaction = this.idb.transaction(this.store.name);
         const objectStore = transaction.objectStore(this.store.name);
         //TODO: process the query
-        //The getAll() method of the IDBObjectStore interface returns an IDBRequest object
+        // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
         // containing all objects in the object store matching the specified parameter or
         // all objects in the store if no parameters are given.
         const request = objectStore.getAll();

@@ -23,6 +23,7 @@ IndexedClient_1.IndexedClient.connect("example").then(function (db) {
             db.collection("another_collection").then(c => {
                 c.find().toArray().then(values => {
                     console.log(values);
+                    db.close();
                 });
             });
         });
@@ -31,6 +32,7 @@ IndexedClient_1.IndexedClient.connect("example").then(function (db) {
         db.collection("another_collection").then(c => {
             c.find().toArray().then(values => {
                 console.log(values);
+                db.close();
             });
         });
     }

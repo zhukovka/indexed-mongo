@@ -21,6 +21,7 @@ IndexedClient.connect("example").then(function (db) {
             db.collection("another_collection").then(c => {
                 c.find().toArray().then(values => {
                     console.log(values);
+                    db.close();
                 })
             })
         });
@@ -28,6 +29,7 @@ IndexedClient.connect("example").then(function (db) {
         db.collection("another_collection").then(c => {
             c.find().toArray().then(values => {
                 console.log(values);
+                db.close();
             })
         })
     }

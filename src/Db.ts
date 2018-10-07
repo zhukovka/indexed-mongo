@@ -93,4 +93,9 @@ export class Db {
         }
         return Promise.reject("No such collection");
     }
+
+    close () {
+        this.idb.close();
+    }
+
 }
