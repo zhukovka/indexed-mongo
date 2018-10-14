@@ -18,19 +18,17 @@ IndexedClient.connect("example").then(function (db) {
                     console.log("another_collection", r);
                 });
             })]).then(res => {
-            db.collection("another_collection").then(c => {
-                c.find().toArray().then(values => {
-                    console.log(values);
-                    db.close();
-                })
-            })
-        });
-    } else {
-        db.collection("another_collection").then(c => {
+            const c = db.collection("another_collection");
             c.find().toArray().then(values => {
                 console.log(values);
                 db.close();
             })
+        });
+    } else {
+        const c = db.collection("another_collection");
+        c.find().toArray().then(values => {
+            console.log(values);
+            db.close();
         })
     }
 

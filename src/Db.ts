@@ -1,6 +1,11 @@
-import {Collection} from "./Collection";
+import {Collection, CollectionCreateOptions} from "./Collection";
 
-export class Db {
+export interface IDb {
+    createCollection (name: string, options?: CollectionCreateOptions): Promise<Collection>;
+    collection (name: string): Collection;
+}
+
+export class Db implements IDb {
     private collectionQueue: Set<string> = new Set<string>();
     private DBOpenRequest: IDBOpenDBRequest;
 
@@ -86,12 +91,9 @@ export class Db {
         });
     }
 
-    collection (name: string): Promise<Collection> {
-        if (this.idb.objectStoreNames.contains(name)) {
-            const store = this.idb.transaction(name).objectStore(name);
-            return Promise.resolve(new Collection(store, this.idb));
-        }
-        return Promise.reject("No such collection");
+    collection (name: string): Collection {
+        const store = this.idb.transaction(name).objectStore(name);
+        return new Collection(store, this.idb);
     }
 
     close () {

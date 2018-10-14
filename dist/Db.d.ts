@@ -1,5 +1,9 @@
-import { Collection } from "./Collection";
-export declare class Db {
+import { Collection, CollectionCreateOptions } from "./Collection";
+export interface IDb {
+    createCollection(name: string, options?: CollectionCreateOptions): Promise<Collection>;
+    collection(name: string): Collection;
+}
+export declare class Db implements IDb {
     private idb;
     private collectionQueue;
     private DBOpenRequest;
@@ -18,6 +22,6 @@ export declare class Db {
      * Unknown parameters are ignored.
      */
     createCollection(name: string, options?: IDBObjectStoreParameters): Promise<Collection>;
-    collection(name: string): Promise<Collection>;
+    collection(name: string): Collection;
     close(): void;
 }

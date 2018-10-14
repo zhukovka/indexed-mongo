@@ -78,11 +78,8 @@ class Db {
         });
     }
     collection(name) {
-        if (this.idb.objectStoreNames.contains(name)) {
-            const store = this.idb.transaction(name).objectStore(name);
-            return Promise.resolve(new Collection_1.Collection(store, this.idb));
-        }
-        return Promise.reject("No such collection");
+        const store = this.idb.transaction(name).objectStore(name);
+        return new Collection_1.Collection(store, this.idb);
     }
     close() {
         this.idb.close();
