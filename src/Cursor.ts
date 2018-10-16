@@ -1,9 +1,76 @@
-export class Cursor<T> {
-    constructor (private request: IDBRequest) {
+import {FilterQuery} from "./Collection";
+
+export enum CursorOperation {
+    DELETE, UPDATE, READ
+}
+
+//[P in keyof T]?: T[P]
+export class Cursor<T extends { [key: string]: any }> {
+    private result: Promise<any>;
+    private _result: T[];
+
+    constructor (private request: IDBRequest, filter?: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ) {
+        this.result = new Promise((resolve, reject) => {
+
+            this.request.onerror = e => {
+                reject(this.request.error);
+            };
+            this.request.onsuccess = (event) => {
+                // Do something with the request.result!
+                const cursor = request.result;
+                if (cursor && cursor instanceof IDBCursorWithValue) {
+                    this._result = this._result || [];
+                    // cursor.value contains the current record being iterated through
+                    // this is where you'd do something with the result
+                    this.executeCursorOperation(operation, cursor, filter);
+                    cursor.continue();
+                    return;
+                } else {
+                    this._result = this._result || this.request.result;
+                }
+                resolve(this._result);
+            };
+
+        });
+
 
     }
 
-    // sortValue: string;
+    private applyFilter (value: T, filter: FilterQuery<T>) {
+        let filterKeys = Object.keys(filter);
+
+        for (const key of filterKeys) {
+            if (key.startsWith('$')) {
+                //TODO: operators
+                return;
+            }
+            if (value[key] != filter[key]) {
+                return;
+            }
+        }
+        return value;
+
+    }
+
+    private executeCursorOperation (operation: CursorOperation, cursor: IDBCursorWithValue, filter?: FilterQuery<T>) {
+        const value = filter ? this.applyFilter(cursor.value, filter) : cursor.value;
+        if (!value) {
+            return;
+        }
+        switch (operation) {
+            case CursorOperation.DELETE:
+                cursor.delete();
+                break;
+            case CursorOperation.UPDATE:
+                //TODO: Update
+                // ??? cursor.update();
+                break;
+            default:
+                this._result.push(value);
+        }
+    }
+
+// sortValue: string;
     // timeout: boolean;
     // readPreference: ReadPreference;
     // /** http://mongodb.github.io/node-mongodb-native/3.1/api/Cursor.html#addCursorFlag */
@@ -83,15 +150,10 @@ export class Cursor<T> {
     // stream(options?: { transform?: Function }): Cursor<T>;
     // /** http://mongodb.github.io/node-mongodb-native/3.1/api/Cursor.html#toArray */
     toArray (): Promise<T[]> {
-        return new Promise<T[]>((resolve, reject) => {
-            this.request.onerror = reject;
-            this.request.onsuccess = (event) => {
-                // Do something with the request.result!
-                resolve(this.request.result);
-            };
-        });
+        return this.result.then(result => Array.from(result) as T[]);
     }
 
     // /** http://mongodb.github.io/node-mongodb-native/3.1/api/Cursor.html#unshift */
     // unshift(stream: Buffer | string): void;
+
 }

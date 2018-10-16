@@ -30,25 +30,25 @@ IndexedClient.connect("example").then(function (client) {
             }),
             db.createCollection("another_collection").then(function (collection) {
                 // Insert a document in the collection
-                collection.insertMany([{b : 2}, {c : 3}, {d : 4}]).then(function (r) {
+                collection.insertMany([{b : 2}, {c : 3}, {d : 4}, {b : 2}]).then(function (r) {
                     // Finish up test
                     console.log("another_collection", r);
                     document.getElementById("output").innerHTML += `<p>another_collection: ${JSON.stringify(r)}</p>`;
                 });
             })]).then(res => {
-            const c = db.collection("another_collection");
-            c.find().toArray().then(values => {
-                console.log(values);
-                document.getElementById("output").innerHTML += `<p>another_collection find all: ${JSON.stringify(values)}</p>`;
-                client.close();
-            })
+            find({b : 2})
         });
     } else {
+        find({b : 2})
+    }
+
+    function find (q?: any) {
         const c = db.collection("another_collection");
-        c.find().toArray().then(values => {
+        c.find(q).toArray().then(values => {
             console.log(values);
-            document.getElementById("output").innerHTML += `<p>another_collection find all: ${JSON.stringify(values)}</p>`;
+            document.getElementById("output").innerHTML += `<p>another_collection find {b : 2}: ${JSON.stringify(values)}</p>`;
             client.close();
         })
     }
 });
+

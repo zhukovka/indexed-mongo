@@ -18,6 +18,7 @@ interface InsertWriteOpResult {
     insertedIds: any[];
 }
 
+//TODO: add support for operators like $eq
 export type FilterQuery<T> = {
     [P in keyof T]?: T[P] | {
     $eq?: T[P];
@@ -56,6 +57,21 @@ export type FilterQuery<T> = {
     [key: string]: any;
 };
 } | { [key: string]: any };
+
+interface CommonOptions {
+}
+
+export interface DeleteWriteOpResultObject {
+    //The raw result returned from MongoDB, field will vary depending on server version.
+    result: {
+        //Is 1 if the command executed correctly.
+        ok?: number;
+        //The total count of documents deleted.
+        n?: number;
+    }
+    //The number of documents deleted.
+    deletedCount?: number;
+}
 
 export class Collection {
     constructor (private store: IDBObjectStore, private idb: IDBDatabase) {
@@ -117,7 +133,17 @@ export class Collection {
         // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
         // containing all objects in the object store matching the specified parameter or
         // all objects in the store if no parameters are given.
-        const request = objectStore.getAll();
-        return new Cursor(request);
+        let request: any;
+        if (!query) {
+            request = objectStore.getAll();
+        } else {
+            request = objectStore.openCursor() as IDBRequest<IDBCursorWithValue | null>;
+        }
+        return new Cursor(request, query);
     }
+
+    // deleteMany<T> (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
+    //
+    // }
+
 }

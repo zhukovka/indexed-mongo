@@ -51,6 +51,13 @@ export declare type FilterQuery<T> = {
 } | {
     [key: string]: any;
 };
+export interface DeleteWriteOpResultObject {
+    result: {
+        ok?: number;
+        n?: number;
+    };
+    deletedCount?: number;
+}
 export declare class Collection {
     private store;
     private idb;
