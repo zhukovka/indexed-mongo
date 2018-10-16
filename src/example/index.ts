@@ -13,8 +13,10 @@ MongoClient.connect(url, function(err, client) {
   });
 });
 * */
+document.getElementById("output").innerHTML = "";
 IndexedClient.connect("example").then(function (client) {
     const db = client.db as Db;
+    document.getElementById("output").innerHTML += `<p>DB version: ${db.version}</p>`;
     if (db.version == 1) {
         // Create a collection
         Promise.all([
@@ -23,6 +25,7 @@ IndexedClient.connect("example").then(function (client) {
                 collection.insertOne({a : 1}).then(function (r) {
                     // Finish up test
                     console.log("a_simple_collection", r);
+                    document.getElementById("output").innerHTML += `<p>a_simple_collection: ${JSON.stringify(r)}</p>`;
                 });
             }),
             db.createCollection("another_collection").then(function (collection) {
@@ -30,11 +33,13 @@ IndexedClient.connect("example").then(function (client) {
                 collection.insertMany([{b : 2}, {c : 3}, {d : 4}]).then(function (r) {
                     // Finish up test
                     console.log("another_collection", r);
+                    document.getElementById("output").innerHTML += `<p>another_collection: ${JSON.stringify(r)}</p>`;
                 });
             })]).then(res => {
             const c = db.collection("another_collection");
             c.find().toArray().then(values => {
                 console.log(values);
+                document.getElementById("output").innerHTML += `<p>another_collection find all: ${JSON.stringify(values)}</p>`;
                 client.close();
             })
         });
@@ -42,6 +47,7 @@ IndexedClient.connect("example").then(function (client) {
         const c = db.collection("another_collection");
         c.find().toArray().then(values => {
             console.log(values);
+            document.getElementById("output").innerHTML += `<p>another_collection find all: ${JSON.stringify(values)}</p>`;
             client.close();
         })
     }
