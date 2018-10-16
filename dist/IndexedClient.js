@@ -1,11 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Db_1 = require("./Db");
-class IndexedClient {
+exports.IndexedClient = class IndexedClient {
+    constructor(dbname) {
+    }
+    close(force) {
+        return Promise.resolve(this.db.close());
+    }
     static connect(name, options) {
         // If the version is not provided and the database exists, then a connection to the database will be opened without changing its version. If the version is not provided and the database does not exist, then it will be created with version 1.
-        return Db_1.Db.open(name);
+        const client = new IndexedClient(name);
+        return Db_1.Db.open(name).then(db => {
+            client.db = db;
+            return client;
+        });
     }
-}
-exports.IndexedClient = IndexedClient;
+};
 //# sourceMappingURL=IndexedClient.js.map
