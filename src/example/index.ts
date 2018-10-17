@@ -22,7 +22,7 @@ IndexedClient.connect("example").then(function (client) {
         Promise.all([
             db.createCollection("a_simple_collection").then(function (collection) {
                 // Insert a document in the collection
-                collection.insertOne({a : 1}).then(function (r) {
+                collection.insertOne({a : 1}).then(function (r: any) {
                     // Finish up test
                     console.log("a_simple_collection", r);
                     document.getElementById("output").innerHTML += `<p>a_simple_collection: ${JSON.stringify(r)}</p>`;
@@ -30,7 +30,7 @@ IndexedClient.connect("example").then(function (client) {
             }),
             db.createCollection("another_collection").then(function (collection) {
                 // Insert a document in the collection
-                collection.insertMany([{b : 2}, {c : 3}, {d : 4}, {b : 2}]).then(function (r) {
+                collection.insertMany([{b : 2}, {c : 3}, {d : 4}, {b : 2}]).then(function (r: any) {
                     // Finish up test
                     console.log("another_collection", r);
                     document.getElementById("output").innerHTML += `<p>another_collection: ${JSON.stringify(r)}</p>`;
@@ -44,11 +44,17 @@ IndexedClient.connect("example").then(function (client) {
 
     function find (q?: any) {
         const c = db.collection("another_collection");
-        c.find(q).toArray().then(values => {
+        c.find(q).toArray().then((values: any) => {
             console.log(values);
             document.getElementById("output").innerHTML += `<p>another_collection find {b : 2}: ${JSON.stringify(values)}</p>`;
+        }).then(() => {
+            document.getElementById("output").innerHTML += `<p>another_collection delete all {b : 2}</p>`;
+            return c.deleteMany(q).then(res => {
+                document.getElementById("output").innerHTML += `<p>${JSON.stringify(res)}</p>`;
+            })
+        }).then(() => {
             client.close();
-        })
+        });
     }
 });
 

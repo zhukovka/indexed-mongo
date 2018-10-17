@@ -51,6 +51,8 @@ export declare type FilterQuery<T> = {
 } | {
     [key: string]: any;
 };
+interface CommonOptions {
+}
 export interface DeleteWriteOpResultObject {
     result: {
         ok?: number;
@@ -58,7 +60,7 @@ export interface DeleteWriteOpResultObject {
     };
     deletedCount?: number;
 }
-export declare class Collection {
+export declare class Collection<T> {
     private store;
     private idb;
     constructor(store: IDBObjectStore, idb: IDBDatabase);
@@ -69,11 +71,13 @@ export declare class Collection {
      */
     insertOne(docs: Object, options?: CollectionInsertOneOptions): Promise<InsertOneWriteOpResult>;
     insertMany(docs: Object[], options?: CollectionInsertOneOptions): Promise<InsertWriteOpResult>;
+    private getCursor;
     /**
      *
      * @param query[optional]
      * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
      */
-    find<T>(query?: FilterQuery<T>): Cursor<T>;
+    find(query?: FilterQuery<T>): Cursor<T>;
+    deleteMany(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
 }
 export {};

@@ -1,4 +1,4 @@
-import {Cursor} from "./Cursor";
+import {Cursor, CursorOperation} from "./Cursor";
 
 export interface CollectionCreateOptions {
 
@@ -73,7 +73,7 @@ export interface DeleteWriteOpResultObject {
     deletedCount?: number;
 }
 
-export class Collection {
+export class Collection<T> {
     constructor (private store: IDBObjectStore, private idb: IDBDatabase) {
 
     }
@@ -121,13 +121,9 @@ export class Collection {
         });
     }
 
-    /**
-     *
-     * @param query[optional]
-     * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
-     */
-    find<T> (query?: FilterQuery<T>): Cursor<T> {
-        const transaction = this.idb.transaction(this.store.name);
+    private getCursor (query: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ): Cursor<T> {
+        const mode = operation == CursorOperation.READ ? "readonly" : "readwrite";
+        const transaction = this.idb.transaction(this.store.name, mode);
         const objectStore = transaction.objectStore(this.store.name);
         //TODO: process the query
         // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
@@ -139,11 +135,34 @@ export class Collection {
         } else {
             request = objectStore.openCursor() as IDBRequest<IDBCursorWithValue | null>;
         }
-        return new Cursor(request, query);
+        return new Cursor(request, query, operation);
     }
 
-    // deleteMany<T> (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
-    //
-    // }
+    /**
+     *
+     * @param query[optional]
+     * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
+     */
+    find (query?: FilterQuery<T>): Cursor<T> {
+        return this.getCursor(query);
+    }
+
+
+    deleteMany (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
+        let cursor = this.getCursor(filter, CursorOperation.DELETE);
+
+        return cursor.getResult().then(deleted => {
+            return {
+                result : {
+                    //Is 1 if the command executed correctly.
+                    ok : 1,
+                    //The total count of documents deleted.
+                    n : deleted.length
+                },
+                //The number of documents deleted.
+                deletedCount : deleted.length
+            }
+        });
+    }
 
 }

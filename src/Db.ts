@@ -1,8 +1,9 @@
 import {Collection, CollectionCreateOptions} from "./Collection";
 
 export interface IDb {
-    createCollection (name: string, options?: CollectionCreateOptions): Promise<Collection>;
-    collection (name: string): Collection;
+    createCollection<T> (name: string, options?: CollectionCreateOptions): Promise<Collection<T>>;
+
+    collection<T> (name: string): Collection<T>;
 }
 
 export class Db implements IDb {
@@ -50,7 +51,7 @@ export class Db implements IDb {
      * | autoIncrement    | If true, the object store has a key generator. Defaults to false. |
      * Unknown parameters are ignored.
      */
-    createCollection (name: string, options: IDBObjectStoreParameters = {autoIncrement : true}): Promise<Collection> {
+    createCollection<T> (name: string, options: IDBObjectStoreParameters = {autoIncrement : true}): Promise<Collection<T>> {
         if (this.idb.objectStoreNames.contains(name)) {
             throw new Error("Collection already exists");
         }
@@ -60,7 +61,7 @@ export class Db implements IDb {
             this.DBOpenRequest = self.indexedDB.open(this.idb.name, v);
         }
         this.collectionQueue.add(name);
-        return new Promise<Collection>((resolve, reject) => {
+        return new Promise<Collection<T>>((resolve, reject) => {
             // these two event handlers act on the database being opened
             // successfully, or not
             this.DBOpenRequest.addEventListener('error', reject);
@@ -75,7 +76,7 @@ export class Db implements IDb {
                 // finished before adding data into it.
                 let transaction = store.transaction;
                 transaction.addEventListener('complete', (event) => {
-                    let collection = new Collection(store, this.idb);
+                    let collection = new Collection<T>(store, this.idb);
                     this.collectionQueue.delete(name);
                     resolve(collection);
                 });
@@ -91,7 +92,7 @@ export class Db implements IDb {
         });
     }
 
-    collection (name: string): Collection {
+    collection<T> (name: string): Collection<T> {
         const store = this.idb.transaction(name).objectStore(name);
         return new Collection(store, this.idb);
     }

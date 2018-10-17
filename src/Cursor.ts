@@ -4,9 +4,13 @@ export enum CursorOperation {
     DELETE, UPDATE, READ
 }
 
+export interface ICursor<T> {
+    toArray (): Promise<T[]>
+}
+
 //[P in keyof T]?: T[P]
-export class Cursor<T extends { [key: string]: any }> {
-    private result: Promise<any>;
+export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
+    private result: Promise<T[]>;
     private _result: T[];
 
     constructor (private request: IDBRequest, filter?: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ) {
@@ -57,6 +61,7 @@ export class Cursor<T extends { [key: string]: any }> {
         if (!value) {
             return;
         }
+        this._result.push(value);
         switch (operation) {
             case CursorOperation.DELETE:
                 cursor.delete();
@@ -65,10 +70,13 @@ export class Cursor<T extends { [key: string]: any }> {
                 //TODO: Update
                 // ??? cursor.update();
                 break;
-            default:
-                this._result.push(value);
         }
     }
+
+    getResult (): Promise<T[]> {
+        return this.result;
+    }
+
 
 // sortValue: string;
     // timeout: boolean;
