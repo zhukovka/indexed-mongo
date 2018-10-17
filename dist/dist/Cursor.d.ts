@@ -10,10 +10,10 @@ export interface ICursor<T> {
 export declare class Cursor<T extends {
     [key: string]: any;
 }> implements ICursor<T> {
-    private request;
     private result;
     private _result;
-    constructor(request: IDBRequest, filter?: FilterQuery<T>, operation?: CursorOperation);
+    constructor(store: IDBObjectStore, filter?: FilterQuery<T>, operation?: CursorOperation, single?: boolean);
+    private getRequest;
     private applyFilter;
     private executeCursorOperation;
     getResult(): Promise<T[]>;

@@ -20,9 +20,9 @@ IndexedClient.connect("example").then(function (client) {
     if (db.version == 1) {
         // Create a collection
         Promise.all([
-            db.createCollection("a_simple_collection").then(function (collection) {
+            db.createCollection("a_simple_collection", {keyPath : "_id"}).then(function (collection) {
                 // Insert a document in the collection
-                collection.insertOne({a : 1}).then(function (r: any) {
+                collection.insertOne({_id : "a", a : 1}).then(function (r: any) {
                     // Finish up test
                     console.log("a_simple_collection", r);
                     document.getElementById("output").innerHTML += `<p>a_simple_collection: ${JSON.stringify(r)}</p>`;
@@ -30,7 +30,7 @@ IndexedClient.connect("example").then(function (client) {
             }),
             db.createCollection("another_collection").then(function (collection) {
                 // Insert a document in the collection
-                collection.insertMany([{b : 2}, {c : 3}, {d : 4}, {b : 2}]).then(function (r: any) {
+                collection.insertMany([{b : 2}, {c : 3}, {c : 3}, {d : 4}, {b : 2}]).then(function (r: any) {
                     // Finish up test
                     console.log("another_collection", r);
                     document.getElementById("output").innerHTML += `<p>another_collection: ${JSON.stringify(r)}</p>`;
@@ -44,17 +44,25 @@ IndexedClient.connect("example").then(function (client) {
 
     function find (q?: any) {
         const c = db.collection("another_collection");
+        const output = document.getElementById("output");
         c.find(q).toArray().then((values: any) => {
             console.log(values);
-            document.getElementById("output").innerHTML += `<p>another_collection find {b : 2}: ${JSON.stringify(values)}</p>`;
+            output.innerHTML += `<p>another_collection find {b : 2}: ${JSON.stringify(values)}</p>`;
         }).then(() => {
-            document.getElementById("output").innerHTML += `<p>another_collection delete all {b : 2}</p>`;
-            return c.deleteMany(q).then(res => {
-                document.getElementById("output").innerHTML += `<p>${JSON.stringify(res)}</p>`;
+            output.innerHTML += `<p>another_collection delete all {b : 2}, delete one {c : 3}</p>`;
+            return Promise.all([c.deleteMany(q), c.deleteOne({c : 3})]).then(res => {
+                output.innerHTML += `<p>${JSON.stringify(res)}</p>`;
             })
         }).then(() => {
-            client.close();
+            // client.close();
         });
+
+        const c1 = db.collection("a_simple_collection");
+        const output1 = document.getElementById("output1");
+        c1.find({_id : "a"}).toArray().then((values: any) => {
+            console.log(values);
+            output1.innerHTML += `<p>a_simple_collection find {_id : "a"}: ${JSON.stringify(values)}</p>`;
+        })
     }
 });
 

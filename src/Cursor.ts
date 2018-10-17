@@ -13,31 +13,69 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
     private result: Promise<T[]>;
     private _result: T[];
 
-    constructor (private request: IDBRequest, filter?: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ) {
+    constructor (store: IDBObjectStore, filter?: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ, single?: boolean) {
+        //TODO: process the query
+        // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
+        // containing all objects in the object store matching the specified parameter or
+        // all objects in the store if no parameters are given.
+        let request = this.getRequest(store, operation, filter);
+        let executed = false;
+
         this.result = new Promise((resolve, reject) => {
 
-            this.request.onerror = e => {
-                reject(this.request.error);
+            request.onerror = e => {
+                reject(request.error);
             };
-            this.request.onsuccess = (event) => {
-                // Do something with the request.result!
+            request.onsuccess = (event) => {
+                if (single && executed) {
+                    request.onsuccess = null;
+                    return resolve(this._result);
+                }
                 const cursor = request.result;
                 if (cursor && cursor instanceof IDBCursorWithValue) {
                     this._result = this._result || [];
                     // cursor.value contains the current record being iterated through
                     // this is where you'd do something with the result
-                    this.executeCursorOperation(operation, cursor, filter);
+                    executed = this.executeCursorOperation(operation, cursor, filter);
                     cursor.continue();
                     return;
                 } else {
-                    this._result = this._result || this.request.result;
+                    this._result = this._result || [].concat(request.result);
                 }
-                resolve(this._result);
+                return resolve(this._result);
             };
 
         });
 
 
+    }
+
+    private getRequest (store: IDBObjectStore, operation: CursorOperation, filter?: FilterQuery<T>): IDBRequest {
+        const keyPath = store.keyPath as string;
+        const key = filter && filter[keyPath];
+
+        switch (operation) {
+            case CursorOperation.DELETE:
+                if (!filter) {
+                    return store.clear();
+                }
+                if (key) {
+                    return store.delete(key);
+                }
+                break;
+            case CursorOperation.READ:
+                if (!filter) {
+                    return store.getAll();
+                }
+                if (key) {
+                    return store.get(key);
+                }
+                break;
+            //TODO: update
+            // case CursorOperation.UPDATE:
+        }
+
+        return store.openCursor() as IDBRequest<IDBCursorWithValue | null>;
     }
 
     private applyFilter (value: T, filter: FilterQuery<T>) {
@@ -56,10 +94,10 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
 
     }
 
-    private executeCursorOperation (operation: CursorOperation, cursor: IDBCursorWithValue, filter?: FilterQuery<T>) {
+    private executeCursorOperation (operation: CursorOperation, cursor: IDBCursorWithValue, filter?: FilterQuery<T>): boolean {
         const value = filter ? this.applyFilter(cursor.value, filter) : cursor.value;
         if (!value) {
-            return;
+            return false;
         }
         this._result.push(value);
         switch (operation) {
@@ -68,9 +106,9 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
                 break;
             case CursorOperation.UPDATE:
                 //TODO: Update
-                // ??? cursor.update();
                 break;
         }
+        return true;
     }
 
     getResult (): Promise<T[]> {
@@ -158,10 +196,13 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
     // stream(options?: { transform?: Function }): Cursor<T>;
     // /** http://mongodb.github.io/node-mongodb-native/3.1/api/Cursor.html#toArray */
     toArray (): Promise<T[]> {
-        return this.result.then(result => Array.from(result) as T[]);
+        return this.result.then(result => {
+            return Array.from(result) as T[];
+        });
     }
 
     // /** http://mongodb.github.io/node-mongodb-native/3.1/api/Cursor.html#unshift */
     // unshift(stream: Buffer | string): void;
+
 
 }

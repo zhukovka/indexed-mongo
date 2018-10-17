@@ -60,7 +60,26 @@ export interface DeleteWriteOpResultObject {
     };
     deletedCount?: number;
 }
-export declare class Collection<T> {
+export interface ICollection<T> {
+    /**
+     *
+     * @param docs
+     * @param options
+     */
+    insertOne(docs: Object, options?: CollectionInsertOneOptions): Promise<InsertOneWriteOpResult>;
+    insertMany(docs: Object[], options?: CollectionInsertOneOptions): Promise<InsertWriteOpResult>;
+    /**
+     *
+     * @param query[optional]
+     * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
+     */
+    find(query?: FilterQuery<T>): Cursor<T>;
+    deleteMany(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+    deleteOne(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+}
+export declare class Collection<T extends {
+    [key: string]: any;
+}> implements ICollection<T> {
     private store;
     private idb;
     constructor(store: IDBObjectStore, idb: IDBDatabase);
@@ -78,6 +97,8 @@ export declare class Collection<T> {
      * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
      */
     find(query?: FilterQuery<T>): Cursor<T>;
+    private delete;
     deleteMany(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+    deleteOne(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
 }
 export {};

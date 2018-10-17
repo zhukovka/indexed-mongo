@@ -73,7 +73,33 @@ export interface DeleteWriteOpResultObject {
     deletedCount?: number;
 }
 
-export class Collection<T> {
+const SINGLE = true;
+
+export interface ICollection<T> {
+    /**
+     *
+     * @param docs
+     * @param options
+     */
+    insertOne (docs: Object, options?: CollectionInsertOneOptions): Promise<InsertOneWriteOpResult>;
+
+    insertMany (docs: Object[], options?: CollectionInsertOneOptions): Promise<InsertWriteOpResult>;
+
+    /**
+     *
+     * @param query[optional]
+     * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
+     */
+    find (query?: FilterQuery<T>): Cursor<T>;
+
+    //findOne<T>(filter: FilterQuery<TSchema>, options?: FindOneOptions): Promise<T | null>;
+
+    deleteMany (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+
+    deleteOne (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+}
+
+export class Collection<T extends { [key: string]: any }> implements ICollection<T> {
     constructor (private store: IDBObjectStore, private idb: IDBDatabase) {
 
     }
@@ -121,21 +147,12 @@ export class Collection<T> {
         });
     }
 
-    private getCursor (query: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ): Cursor<T> {
+    private getCursor (query: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ, single: boolean = false): Cursor<T> {
         const mode = operation == CursorOperation.READ ? "readonly" : "readwrite";
         const transaction = this.idb.transaction(this.store.name, mode);
         const objectStore = transaction.objectStore(this.store.name);
-        //TODO: process the query
-        // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
-        // containing all objects in the object store matching the specified parameter or
-        // all objects in the store if no parameters are given.
-        let request: any;
-        if (!query) {
-            request = objectStore.getAll();
-        } else {
-            request = objectStore.openCursor() as IDBRequest<IDBCursorWithValue | null>;
-        }
-        return new Cursor(request, query, operation);
+
+        return new Cursor(objectStore, query, operation, single);
     }
 
     /**
@@ -144,12 +161,11 @@ export class Collection<T> {
      * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
      */
     find (query?: FilterQuery<T>): Cursor<T> {
-        return this.getCursor(query);
+        return this.getCursor(query, CursorOperation.READ);
     }
 
-
-    deleteMany (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
-        let cursor = this.getCursor(filter, CursorOperation.DELETE);
+    private delete (filter: FilterQuery<T>, operation: CursorOperation = CursorOperation.DELETE, options?: CommonOptions, single?: boolean) {
+        let cursor = this.getCursor(filter, operation, single);
 
         return cursor.getResult().then(deleted => {
             return {
@@ -164,5 +180,14 @@ export class Collection<T> {
             }
         });
     }
+
+    deleteMany (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
+        return this.delete(filter, CursorOperation.DELETE, options);
+    }
+
+    deleteOne (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
+        return this.delete(filter, CursorOperation.DELETE, options, SINGLE);
+    }
+
 
 }
