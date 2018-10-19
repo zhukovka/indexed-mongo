@@ -1,6 +1,6 @@
 {
   "name": "indexed-mongo",
-  "version": "1.0.2-alfa5",
+  "version": "1.0.2-alfa6",
   "description": "",
   "main": "dist/",
   "scripts": {
