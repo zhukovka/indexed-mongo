@@ -19,7 +19,7 @@ output1.innerHTML = `<h2>a_simple_collection</h2>`;
 const output2 = document.getElementById("output2");
 output2.innerHTML = `<h2>another_collection</h2>`;
 IndexedClient_1.IndexedClient.connect("example").then(function (client) {
-    const db = client.db;
+    const db = client.db("");
     if (db.version == 1) {
         // Create a collection
         Promise.all([

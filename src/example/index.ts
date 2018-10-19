@@ -21,7 +21,7 @@ const output2 = document.getElementById("output2");
 output2.innerHTML = `<h2>another_collection</h2>`;
 
 IndexedClient.connect("example").then(function (client) {
-    const db = client.db as Db;
+    const db = client.db("") as Db;
     if (db.version == 1) {
         // Create a collection
         Promise.all([
