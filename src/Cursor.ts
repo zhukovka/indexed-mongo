@@ -1,4 +1,4 @@
-import {FilterQuery} from "./Collection";
+import {FilterQuery, UpdateQuery} from "./Collection";
 
 export enum CursorOperation {
     DELETE, UPDATE, READ
@@ -13,11 +13,8 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
     private result: Promise<T[]>;
     private _result: T[];
 
-    constructor (store: IDBObjectStore, filter?: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ, single?: boolean) {
-        //TODO: process the query
-        // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
-        // containing all objects in the object store matching the specified parameter or
-        // all objects in the store if no parameters are given.
+    constructor (store: IDBObjectStore, filter?: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ, single?: boolean, update?: UpdateQuery<T> | T) {
+
         let request = this.getRequest(store, operation, filter);
         let executed = false;
 
@@ -36,7 +33,7 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
                     this._result = this._result || [];
                     // cursor.value contains the current record being iterated through
                     // this is where you'd do something with the result
-                    executed = this.executeCursorOperation(operation, cursor, filter);
+                    executed = this.executeCursorOperation(operation, cursor, filter, update);
                     cursor.continue();
                     return;
                 } else {
@@ -65,14 +62,15 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
                 break;
             case CursorOperation.READ:
                 if (!filter) {
+                    // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
+                    // containing all objects in the object store matching the specified parameter or
+                    // all objects in the store if no parameters are given.
                     return store.getAll();
                 }
                 if (key) {
                     return store.get(key);
                 }
                 break;
-            //TODO: update
-            // case CursorOperation.UPDATE:
         }
 
         return store.openCursor() as IDBRequest<IDBCursorWithValue | null>;
@@ -94,7 +92,7 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
 
     }
 
-    private executeCursorOperation (operation: CursorOperation, cursor: IDBCursorWithValue, filter?: FilterQuery<T>): boolean {
+    private executeCursorOperation (operation: CursorOperation, cursor: IDBCursorWithValue, filter?: FilterQuery<T>, update?: UpdateQuery<T> | T): boolean {
         const value = filter ? this.applyFilter(cursor.value, filter) : cursor.value;
         if (!value) {
             return false;
@@ -105,7 +103,9 @@ export class Cursor<T extends { [key: string]: any }> implements ICursor<T> {
                 cursor.delete();
                 break;
             case CursorOperation.UPDATE:
-                //TODO: Update
+                //TODO: implement UpdateQuery
+                const updated = Object.assign(value, update);
+                cursor.update(updated);
                 break;
         }
         return true;

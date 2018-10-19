@@ -1,8 +1,100 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var CursorOperation;
+(function (CursorOperation) {
+    CursorOperation[CursorOperation["DELETE"] = 0] = "DELETE";
+    CursorOperation[CursorOperation["UPDATE"] = 1] = "UPDATE";
+    CursorOperation[CursorOperation["READ"] = 2] = "READ";
+})(CursorOperation = exports.CursorOperation || (exports.CursorOperation = {}));
+//[P in keyof T]?: T[P]
 class Cursor {
-    constructor(request) {
-        this.request = request;
+    constructor(store, filter, operation = CursorOperation.READ, single, update) {
+        let request = this.getRequest(store, operation, filter);
+        let executed = false;
+        this.result = new Promise((resolve, reject) => {
+            request.onerror = e => {
+                reject(request.error);
+            };
+            request.onsuccess = (event) => {
+                if (single && executed) {
+                    request.onsuccess = null;
+                    return resolve(this._result);
+                }
+                const cursor = request.result;
+                if (cursor && cursor instanceof IDBCursorWithValue) {
+                    this._result = this._result || [];
+                    // cursor.value contains the current record being iterated through
+                    // this is where you'd do something with the result
+                    executed = this.executeCursorOperation(operation, cursor, filter, update);
+                    cursor.continue();
+                    return;
+                }
+                else {
+                    this._result = this._result || [].concat(request.result);
+                }
+                return resolve(this._result);
+            };
+        });
+    }
+    getRequest(store, operation, filter) {
+        const keyPath = store.keyPath;
+        const key = filter && filter[keyPath];
+        switch (operation) {
+            case CursorOperation.DELETE:
+                if (!filter) {
+                    return store.clear();
+                }
+                if (key) {
+                    return store.delete(key);
+                }
+                break;
+            case CursorOperation.READ:
+                if (!filter) {
+                    // The getAll() method of the IDBObjectStore interface returns an IDBRequest object
+                    // containing all objects in the object store matching the specified parameter or
+                    // all objects in the store if no parameters are given.
+                    return store.getAll();
+                }
+                if (key) {
+                    return store.get(key);
+                }
+                break;
+        }
+        return store.openCursor();
+    }
+    applyFilter(value, filter) {
+        let filterKeys = Object.keys(filter);
+        for (const key of filterKeys) {
+            if (key.startsWith('$')) {
+                //TODO: operators
+                return;
+            }
+            if (value[key] != filter[key]) {
+                return;
+            }
+        }
+        return value;
+    }
+    executeCursorOperation(operation, cursor, filter, update) {
+        const value = filter ? this.applyFilter(cursor.value, filter) : cursor.value;
+        if (!value) {
+            return false;
+        }
+        this._result.push(value);
+        switch (operation) {
+            case CursorOperation.DELETE:
+                cursor.delete();
+                break;
+            case CursorOperation.UPDATE:
+                //TODO: implement UpdateQuery
+                const updated = Object.assign(value, update);
+                cursor.update(updated);
+                break;
+        }
+        return true;
+    }
+    getResult() {
+        return this.result;
     }
     // sortValue: string;
     // timeout: boolean;
@@ -84,12 +176,8 @@ class Cursor {
     // stream(options?: { transform?: Function }): Cursor<T>;
     // /** http://mongodb.github.io/node-mongodb-native/3.1/api/Cursor.html#toArray */
     toArray() {
-        return new Promise((resolve, reject) => {
-            this.request.onerror = reject;
-            this.request.onsuccess = (event) => {
-                // Do something with the request.result!
-                resolve(this.request.result);
-            };
+        return this.result.then(result => {
+            return Array.from(result);
         });
     }
 }

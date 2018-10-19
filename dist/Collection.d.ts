@@ -51,10 +51,35 @@ export declare type FilterQuery<T> = {
 } | {
     [key: string]: any;
 };
-export declare class Collection {
-    private store;
-    private idb;
-    constructor(store: IDBObjectStore, idb: IDBDatabase);
+interface CommonOptions {
+}
+export interface ReplaceOneOptions extends CommonOptions {
+    upsert?: boolean;
+    bypassDocumentValidation?: boolean;
+}
+export interface DeleteWriteOpResultObject {
+    result: {
+        ok?: number;
+        n?: number;
+    };
+    deletedCount?: number;
+}
+export interface UpdateWriteOpResult {
+    result: {
+        ok: number;
+        n: number;
+        nModified: number;
+    };
+    connection: any;
+    matchedCount: number;
+    modifiedCount: number;
+    upsertedCount: number;
+    upsertedId: {
+        _id: any;
+    };
+}
+export declare type UpdateQuery<T> = {};
+export interface ICollection<T> {
     /**
      *
      * @param docs
@@ -67,6 +92,37 @@ export declare class Collection {
      * @param query[optional]
      * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
      */
-    find<T>(query?: FilterQuery<T>): Cursor<T>;
+    find(query?: FilterQuery<T>): Cursor<T>;
+    deleteMany(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+    deleteOne(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+    updateMany(filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult>;
+    updateOne(filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult>;
+}
+export declare class Collection<T extends {
+    [key: string]: any;
+}> implements ICollection<T> {
+    private store;
+    private idb;
+    constructor(store: IDBObjectStore, idb: IDBDatabase);
+    /**
+     *
+     * @param docs
+     * @param options
+     */
+    insertOne(docs: Object, options?: CollectionInsertOneOptions): Promise<InsertOneWriteOpResult>;
+    insertMany(docs: Object[], options?: CollectionInsertOneOptions): Promise<InsertWriteOpResult>;
+    private getCursor;
+    /**
+     *
+     * @param query[optional]
+     * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
+     */
+    find(query?: FilterQuery<T>): Cursor<T>;
+    private delete;
+    private update;
+    deleteMany(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+    deleteOne(filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+    updateMany(filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult>;
+    updateOne(filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult>;
 }
 export {};

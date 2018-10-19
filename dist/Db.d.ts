@@ -1,7 +1,7 @@
 import { Collection, CollectionCreateOptions } from "./Collection";
 export interface IDb {
-    createCollection(name: string, options?: CollectionCreateOptions): Promise<Collection>;
-    collection(name: string): Collection;
+    createCollection<T>(name: string, options?: CollectionCreateOptions): Promise<Collection<T>>;
+    collection<T>(name: string): Collection<T>;
 }
 export declare class Db implements IDb {
     private idb;
@@ -21,7 +21,7 @@ export declare class Db implements IDb {
      * | autoIncrement    | If true, the object store has a key generator. Defaults to false. |
      * Unknown parameters are ignored.
      */
-    createCollection(name: string, options?: IDBObjectStoreParameters): Promise<Collection>;
-    collection(name: string): Collection;
+    createCollection<T>(name: string, options?: IDBObjectStoreParameters): Promise<Collection<T>>;
+    collection<T>(name: string): Collection<T>;
     close(): void;
 }

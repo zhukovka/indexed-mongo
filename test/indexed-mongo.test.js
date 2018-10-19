@@ -40,12 +40,19 @@ describe('Indexed Mongo a_simple_collection test', () => {
         await page.evaluate(async (testDoc) => {
             const client = await IndexedMongo.IndexedClient.connect("example");
             const db = client.db;
-            return await db.createCollection("a_simple_collection", {keyPath: "_id"});
+            const collection = await db.createCollection("a_simple_collection", {keyPath: "_id"});
+            return collection.insertOne(testDoc);
         }, testDoc);
     });
 
     it('should find document in the collection', async () => {
-        const docs = await collection.find({_id: "a"}).toArray();
+        const docs = page.evaluate(async (testDoc) => {
+            const client = await IndexedMongo.IndexedClient.connect("example");
+            const db = client.db;
+            const collection = await db.createCollection("a_simple_collection", {keyPath: "_id"});
+            const docs = await collection.find({_id: "a"}).toArray();
+            return collection.insertOne(testDoc);
+        }, testDoc);
         expect(docs).toHaveLength(1);
     });
 

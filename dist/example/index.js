@@ -14,38 +14,66 @@ MongoClient.connect(url, function(err, client) {
   });
 });
 * */
+const output1 = document.getElementById("output1");
+output1.innerHTML = `<h2>a_simple_collection</h2>`;
+const output2 = document.getElementById("output2");
+output2.innerHTML = `<h2>another_collection</h2>`;
 IndexedClient_1.IndexedClient.connect("example").then(function (client) {
     const db = client.db;
     if (db.version == 1) {
         // Create a collection
         Promise.all([
-            db.createCollection("a_simple_collection").then(function (collection) {
+            db.createCollection("a_simple_collection", { keyPath: "_id" }).then(function (collection) {
                 // Insert a document in the collection
-                collection.insertOne({ a: 1 }).then(function (r) {
+                collection.insertOne({ _id: "a", a: 1 }).then(function (r) {
                     // Finish up test
                     console.log("a_simple_collection", r);
+                    output1.innerHTML += `<p>insertOne: ${JSON.stringify(r)}</p>`;
                 });
             }),
             db.createCollection("another_collection").then(function (collection) {
                 // Insert a document in the collection
-                collection.insertMany([{ b: 2 }, { c: 3 }, { d: 4 }]).then(function (r) {
+                collection.insertMany([{ b: 2 }, { d: 4 }, { c: 3 }, { c: 3 }, { d: 4 }, { d: 4 }, { b: 2 }]).then(function (r) {
                     // Finish up test
                     console.log("another_collection", r);
+                    output2.innerHTML += `<p>insertMany: ${JSON.stringify(r)}</p>`;
                 });
             })
         ]).then(res => {
-            const c = db.collection("another_collection");
-            c.find().toArray().then(values => {
-                console.log(values);
-                client.close();
-            });
+            test();
         });
     }
     else {
-        const c = db.collection("another_collection");
-        c.find().toArray().then(values => {
+        test();
+    }
+    function test() {
+        const c1 = db.collection("a_simple_collection");
+        c1.find({ _id: "a" }).toArray().then((values) => {
             console.log(values);
-            client.close();
+            output1.innerHTML += `<p>find({_id : "a"}): ${JSON.stringify(values)}</p>`;
+        }).then(() => {
+            return Promise.all([c1.updateOne({ _id: "a" }, { a: 42 })]).then(res => {
+                output1.innerHTML += `<p>updateOne({_id : "a"}, {a : 42})</p>`;
+                output1.innerHTML += `<p>${JSON.stringify(res)}</p>`;
+            });
+        });
+        const c2 = db.collection("another_collection");
+        c2.find({ b: 2 }).toArray().then((values) => {
+            console.log(values);
+            output2.innerHTML += `<p>find {b : 2}: ${JSON.stringify(values)}</p>`;
+        }).then(() => {
+            return Promise.all([c2.updateMany({ d: 4 }, { db: 42 }), c2.updateOne({ b: 2 }, { b: 42 })]).then(res => {
+                output2.innerHTML += `<p>updateMany({d : 4}, {db : 42}): ${JSON.stringify(res[0])}</p>`;
+                output2.innerHTML += `<p>updateOne({b : 2}, {b : 42}): ${JSON.stringify(res[1])}</p>`;
+            });
+        })
+            .then(() => {
+            return Promise.all([c2.deleteMany({ db: 42 }), c2.deleteOne({ c: 3 })]).then(res => {
+                output2.innerHTML += `<p>deleteMany({db : 42}): ${JSON.stringify(res[0])}</p>`;
+                output2.innerHTML += `<p>deleteOne({c : 3}): ${JSON.stringify(res[1])}</p>`;
+            });
+        }).then(() => {
+            // client.close();
         });
     }
 });

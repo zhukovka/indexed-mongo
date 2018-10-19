@@ -61,6 +61,11 @@ export type FilterQuery<T> = {
 interface CommonOptions {
 }
 
+export interface ReplaceOneOptions extends CommonOptions {
+    upsert?: boolean;
+    bypassDocumentValidation?: boolean;
+}
+
 export interface DeleteWriteOpResultObject {
     //The raw result returned from MongoDB, field will vary depending on server version.
     result: {
@@ -71,6 +76,19 @@ export interface DeleteWriteOpResultObject {
     }
     //The number of documents deleted.
     deletedCount?: number;
+}
+
+export interface UpdateWriteOpResult {
+    result: { ok: number, n: number, nModified: number };
+    connection: any;
+    matchedCount: number;
+    modifiedCount: number;
+    upsertedCount: number;
+    upsertedId: { _id: any };
+}
+
+export type UpdateQuery<T> = {
+    //TODO: update operators
 }
 
 const SINGLE = true;
@@ -97,6 +115,10 @@ export interface ICollection<T> {
     deleteMany (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
 
     deleteOne (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject>;
+
+    updateMany (filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult>;
+
+    updateOne (filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult>;
 }
 
 export class Collection<T extends { [key: string]: any }> implements ICollection<T> {
@@ -147,12 +169,12 @@ export class Collection<T extends { [key: string]: any }> implements ICollection
         });
     }
 
-    private getCursor (query: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ, single: boolean = false): Cursor<T> {
+    private getCursor (query: FilterQuery<T>, operation: CursorOperation = CursorOperation.READ, single: boolean = false, update: UpdateQuery<T> | T = null): Cursor<T> {
         const mode = operation == CursorOperation.READ ? "readonly" : "readwrite";
         const transaction = this.idb.transaction(this.store.name, mode);
         const objectStore = transaction.objectStore(this.store.name);
 
-        return new Cursor(objectStore, query, operation, single);
+        return new Cursor(objectStore, query, operation, single, update);
     }
 
     /**
@@ -161,11 +183,11 @@ export class Collection<T extends { [key: string]: any }> implements ICollection
      * The find() method with no parameters returns all documents from a collection and returns all fields for the documents.
      */
     find (query?: FilterQuery<T>): Cursor<T> {
-        return this.getCursor(query, CursorOperation.READ);
+        return this.getCursor(query, CursorOperation.READ, false);
     }
 
-    private delete (filter: FilterQuery<T>, operation: CursorOperation = CursorOperation.DELETE, options?: CommonOptions, single?: boolean) {
-        let cursor = this.getCursor(filter, operation, single);
+    private delete (filter: FilterQuery<T>, options?: CommonOptions, single?: boolean) {
+        let cursor = this.getCursor(filter, CursorOperation.DELETE, single);
 
         return cursor.getResult().then(deleted => {
             return {
@@ -181,12 +203,36 @@ export class Collection<T extends { [key: string]: any }> implements ICollection
         });
     }
 
+    private update (filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: CommonOptions, single?: boolean) {
+        let cursor = this.getCursor(filter, CursorOperation.UPDATE, single, update);
+
+        return cursor.getResult().then(updated => {
+            return {
+                result : {ok : 1, n : updated.length, nModified : updated.length},
+                connection : null,
+                matchedCount : updated.length,
+                modifiedCount : updated.length,
+                upsertedCount : updated.length,
+                upsertedId : {_id : null}
+            };
+
+        });
+    }
+
     deleteMany (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
-        return this.delete(filter, CursorOperation.DELETE, options);
+        return this.delete(filter, options);
     }
 
     deleteOne (filter: FilterQuery<T>, options?: CommonOptions): Promise<DeleteWriteOpResultObject> {
-        return this.delete(filter, CursorOperation.DELETE, options, SINGLE);
+        return this.delete(filter, options, SINGLE);
+    }
+
+    updateMany (filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult> {
+        return this.update(filter, update, options);
+    }
+
+    updateOne (filter: FilterQuery<T>, update: UpdateQuery<T> | T, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult> {
+        return this.update(filter, update, options, SINGLE);
     }
 
 
